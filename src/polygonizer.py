@@ -357,11 +357,11 @@ class Turtle:
     def _move(self):
         # Set wall
         d_ccw, d_cw, d_rev = self.dir.ccw(), self.dir.cw(), self.dir.reverse()
-        self.img[self.x, self.y] |= d_ccw
-
         p = self.x, self.y
-        x_, y_ = d_ccw.move(p)
-        assert not self.img[x_, y_] & CellFlag.ACTIVE
+        self.img[p] |= d_ccw
+
+        p_ = d_ccw.move(p)
+        assert not self.img[p_] & CellFlag.ACTIVE
 
         # Build boundary wall from this point
         # For all diagrams, it is assumed movement direction is right
@@ -369,33 +369,33 @@ class Turtle:
         # ? . #
         # ? X ?
         # ? ? ?
-        x_, y_ = (self.dir | d_ccw).move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = (self.dir | d_ccw).move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # Top-right corner
             ret = [(self.dir | d_ccw).corner(p)]
 
             # ? . ^
             # ? X ?
             # ? ? ?
-            self.x, self.y, self.dir = x_, y_, d_ccw
+            (self.x, self.y), self.dir = p_, d_ccw
             return ret
 
         # ? . .
         # ? X #
         # ? ? ?
-        x_, y_ = self.dir.move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = self.dir.move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # ? . .
             # ? X >
             # ? ? ?
-            self.x, self.y = x_, y_
+            self.x, self.y = p_
             return []  # No corner
 
         # ? . .
         # ? X .
         # ? ? #
-        x_, y_ = (self.dir | d_cw).move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = (self.dir | d_cw).move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # Two corners: top-right and bottom-right
             ret = [
                 (self.dir | d_ccw).corner(p),
@@ -406,14 +406,14 @@ class Turtle:
             # ? X .
             # ? ? >
             self.img[p] |= self.dir
-            self.x, self.y = x_, y_
+            self.x, self.y = p_
             return ret
 
         # ? . .
         # ? X .
         # ? # .
-        x_, y_ = d_cw.move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = d_cw.move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # Top-right corner
             ret = [(self.dir | d_ccw).corner(p)]
 
@@ -421,14 +421,14 @@ class Turtle:
             # ? X .
             # ? v .
             self.img[p] |= self.dir
-            self.x, self.y, self.dir = x_, y_, d_cw
+            (self.x, self.y), self.dir = p_, d_cw
             return ret
 
         # ? . .
         # ? X .
         # # . .
-        x_, y_ = (d_rev | d_cw).move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = (d_rev | d_cw).move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # Three corners: top-right, bottom-right, and bottom-left
             ret = [
                 (self.dir | d_ccw).corner(p),
@@ -440,14 +440,14 @@ class Turtle:
             # ? X .
             # v . .
             self.img[p] |= self.dir | d_cw
-            self.x, self.y, self.dir = x_, y_, d_cw
+            (self.x, self.y), self.dir = p_, d_cw
             return ret
 
         # ? . .
         # # X .
         # . . .
-        x_, y_ = d_rev.move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = d_rev.move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # Two corners: top-right and bottom-right
             ret = [
                 (self.dir | d_ccw).corner(p),
@@ -458,14 +458,14 @@ class Turtle:
             # < X .
             # . . .
             self.img[p] |= self.dir | d_cw
-            self.x, self.y, self.dir = x_, y_, d_rev
+            (self.x, self.y), self.dir = p_, d_rev
             return ret
 
         # # . .
         # . X .
         # . . .
-        x_, y_ = (d_rev | d_ccw).move(p)
-        if self.img[x_, y_] & CellFlag.ACTIVE:
+        p_ = (d_rev | d_ccw).move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
             # Four corners: top-right, bottom-right, bottom-left, and top-left
             ret = [
                 (self.dir | d_ccw).corner(p),
@@ -478,7 +478,7 @@ class Turtle:
             # . X .
             # . . .
             self.img[p] |= self.dir | d_cw | d_rev
-            self.x, self.y, self.dir = x_, y_, d_rev
+            (self.x, self.y), self.dir = p_, d_rev
             return ret
 
         # . . .
@@ -493,11 +493,143 @@ class Turtle:
             (d_ccw | d_rev).corner(p),
         ]
 
-    def trace(self, stop_pos):
+    def _move_4way(self):
+        # Set wall
+        d_ccw, d_cw, d_rev = self.dir.ccw(), self.dir.cw(), self.dir.reverse()
+        p = self.x, self.y
+        self.img[p] |= d_ccw
+
+        p_ = d_ccw.move(p)
+        assert not self.img[p_] & CellFlag.ACTIVE
+
+        # Build boundary wall from this point
+        # For all diagrams, it is assumed movement direction is right
+
+        # ? . ?
+        # ? X #
+        # ? ? ?
+        p_ = self.dir.move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
+
+            # ? . #
+            # ? X #
+            # ? ? ?
+            p__ = d_ccw.move(p_)
+            if self.img[p__] & CellFlag.ACTIVE:
+                # Top-right corner
+                ret = [(self.dir | d_ccw).corner(p)]
+
+                # ? . ^
+                # ? X #
+                # ? ? ?
+                (self.x, self.y), self.dir = p__, d_ccw
+                return ret
+
+            # ? . .
+            # ? X #
+            # ? ? ?
+            else:
+                # ? . .
+                # ? X >
+                # ? ? ?
+                self.x, self.y = p_
+                return []  # No corner
+
+        # ? . ?
+        # ? X .
+        # ? # ?
+        p_ = d_cw.move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
+            self.img[p] |= self.dir
+
+            # ? . ?
+            # ? X .
+            # ? # #
+            p__ = self.dir.move(p_)
+            if self.img[p__] & CellFlag.ACTIVE:
+                # Two corners: top-right and bottom-right
+                ret = [
+                    (self.dir | d_ccw).corner(p),
+                    (self.dir | d_cw).corner(p),
+                ]
+
+                # ? . ?
+                # ? X .
+                # ? # >
+                self.x, self.y = p__
+                return ret
+
+            # ? . ?
+            # ? X .
+            # ? # .
+            else:
+                # Top-right corner
+                ret = [(self.dir | d_ccw).corner(p)]
+
+                # ? . ?
+                # ? X .
+                # ? v .
+                (self.x, self.y), self.dir = p_, d_cw
+                return ret
+
+        # ? . ?
+        # # X .
+        # ? . ?
+        p_ = d_rev.move(p)
+        if self.img[p_] & CellFlag.ACTIVE:
+            self.img[p] |= self.dir | d_cw
+
+            # ? . ?
+            # # X .
+            # # . ?
+            p__ = d_cw.move(p_)
+            if self.img[p__] & CellFlag.ACTIVE:
+                # Three corners: top-right, bottom-right, and bottom-left
+                ret = [
+                    (self.dir | d_ccw).corner(p),
+                    (self.dir | d_cw).corner(p),
+                    (d_cw | d_rev).corner(p),
+                ]
+
+                # ? . ?
+                # # X .
+                # v . .
+                (self.x, self.y), self.dir = p__, d_cw
+                return ret
+
+            # ? . ?
+            # # X .
+            # . . ?
+            else:
+                # Two corners: top-right and bottom-right
+                ret = [
+                    (self.dir | d_ccw).corner(p),
+                    (self.dir | d_cw).corner(p),
+                ]
+
+                # ? . ?
+                # < X .
+                # . . ?
+                (self.x, self.y), self.dir = p_, d_rev
+                return ret
+
+        # ? . ?
+        # . X .
+        # ? . ?
+        self.img[p] |= self.dir | d_cw | d_rev
+        # Four corners: top-right, bottom-right, bottom-left, and top-left
+        return [
+            (self.dir | d_ccw).corner(p),
+            (self.dir | d_cw).corner(p),
+            (d_cw | d_rev).corner(p),
+            (d_ccw | d_rev).corner(p),
+        ]
+
+    def trace(self, stop_pos, exclude_corners=False):
         poly = []
         while True:
             j = len(poly)
-            poly += self._move()
+            poly += self._move_4way() if exclude_corners else self._move()
             try:
                 i = poly.index(stop_pos, j)
             except ValueError:
@@ -506,7 +638,7 @@ class Turtle:
             return poly[:i + 1]
 
 
-def polygonize(image):
+def polygonize(image, exclude_corners=False):
     image = PixelImage(image)
 
     ret = []
@@ -525,7 +657,7 @@ def polygonize(image):
                 continue
             turtle.x, turtle.y = x, y
 
-            ret.append(turtle.trace(stop_pos)[::-1])
+            ret.append(turtle.trace(stop_pos, exclude_corners)[::-1])
             assert checkPoly(ret[-1])
 
     return ret
@@ -624,8 +756,8 @@ def joinPolygons(polygons):
     return [p[0] for p in points]
 
 
-def generatePolygons(image, *, join_polygons=True, **kw):
-    ret = polygonize(image)
+def generatePolygons(image, *, join_polygons=True, exclude_corners=False, **kw):
+    ret = polygonize(image, exclude_corners)
     if join_polygons:
         ret = joinPolygons(ret)
     return ret
@@ -686,7 +818,7 @@ def testChar(name, pixels):
 
     print(f'Character: {name}\n{image}\n\n')
 
-    for poly in generatePolygons(image):
+    for poly in generatePolygons(image, join_polygons=False, exclude_corners=True):
         print('Polygon:\n  ' + '\n  '.join(f'{x}, {y}'
                                            for x, y in poly) + '\n\n')
 
