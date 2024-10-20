@@ -120,6 +120,9 @@ def generateFont(*, black=False, bold=False, semibold=False, light=False, extral
         font.descent = PIXEL_SIZE
         font.em = PIXEL_SIZE * 9
         font.upos = -PIXEL_SIZE  # Underline position
+        font.addLookup("ligatures-exp", "gsub_multiple", (),
+                       (("ccmp", (("dflt", ("dflt")), ("latn", ("dflt")))), ))
+        font.addLookupSubtable("ligatures-exp", "ligatures-exp-subtable")
         font.addLookup("ligatures", "gsub_ligature", (),
                        (("liga", (("dflt", ("dflt")), ("latn", ("dflt")))), ))
         font.addLookupSubtable("ligatures", "ligatures-subtable")
@@ -239,7 +242,6 @@ def generateFont(*, black=False, bold=False, semibold=False, light=False, extral
             -1,
             name,
             image,
-            width=6 * PIXEL_SIZE * len(ligature["sequence"]),
             glyphclass="baseligature",
             **kw,
         )
@@ -253,6 +255,10 @@ def generateFont(*, black=False, bold=False, semibold=False, light=False, extral
                 tuple(charactersByCodepoint[cp]["name"]
                       for cp in ligature["sequence"]),
             )
+            lig.addPosSub(
+                "ligatures-exp-subtable",
+                (name, *(charactersByCodepoint[32]["name"] for _ in range(len(ligature["sequence"])-1))),
+            );
     print(f"Generated {len(ligatures)} ligatures")
 
     head_rules = []
