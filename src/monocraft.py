@@ -22,7 +22,6 @@ from typing import NamedTuple
 from generate_diacritics import generateDiacritics
 from generate_examples import generateExamples
 from polygonizer import PixelImage, generatePolygons
-from generate_continuous_ligatures import generate_continuous_ligatures
 
 PIXEL_SIZE = 120
 WEIGHT_STROKE_OFFSETS = {
@@ -149,6 +148,12 @@ def generateFont(
 			"ligatures", "gsub_ligature", (), (("liga", (("dflt", ("dflt")), ("latn", ("dflt")))),)
 		)
 		font.addLookupSubtable("ligatures", "ligatures-subtable")
+		font.addLookup(
+			"cont-liga",
+			"gsub_contextchain",
+			(),
+			(("calt", (("dflt", ("dflt")), ("latn", ("dflt")))), ),
+		)
 
 	class FontWeight(NamedTuple):
 		suffix: str | None
@@ -200,6 +205,9 @@ def generateFont(
 
 	print(f"Generated {len(characters)} characters")
 
+	outputDir = "../dist/"
+	if not os.path.exists(outputDir):
+		os.makedirs(outputDir)
 
 	if output_ttc:
 		fontList[0].generateTtc(
@@ -314,16 +322,6 @@ def generateFont(
 			f"{body_process_cov} | {body_cov} @<{body_table}> | {maybe_tail_cov}"
 		)
 		tail_rules.append(f"{body_process_cov} | {tail_cov} @<{tail_table}> |")
-
-	for font in fontList:
-		if font is None:
-			continue
-		font.addLookup(
-			"cont-liga",
-			"gsub_contextchain",
-			(),
-			(("calt", (("dflt", ("dflt")), ("latn", ("dflt")))), ),
-		)
 
 	for n, i in enumerate(i for a in [head_rules, tail_rules, body_rules] for i in reversed(a)):
 		for font in fontList:
